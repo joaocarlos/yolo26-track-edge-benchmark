@@ -135,13 +135,18 @@ def _check_filesystem() -> None:
     print(f"[env] filesystem check OK  ({dev_cwd})")
 
 
-def export_ncnn(model_name: str, res: int) -> Path | None:
+def export_ncnn(model_name: str, res: int, half: bool = False) -> Path | None:
     """
     Export a single YOLO26 .pt model to NCNN format for ARM Cortex-A Linux targets.
 
     The input resolution is baked into model.ncnn.param at export time. Every
     inference call against the resulting folder must pass imgsz=res to match.
     Passing a different resolution is a silent correctness error.
+
+    half=True produces an FP16 model in a "<stem>_fp16_<res>_ncnn_model" folder;
+    half=False produces the FP32 default in "<stem>_<res>_ncnn_model". The "_fp16"
+    infix sits before the resolution so device_profile.baked_imgsz() still parses
+    the resolution from the last token, exactly as for the INT8 layout.
 
     Returns the output directory path on success, None if the .pt is not found.
     """
@@ -152,19 +157,21 @@ def export_ncnn(model_name: str, res: int) -> Path | None:
         print(f"[SKIP] {model_name} not found at {pt_path}")
         return None
 
-    stem = pt_path.stem                           # e.g. "yolo26n"
-    dst  = _MODELS_DIR / f"{stem}_{res}_ncnn_model"
+    stem  = pt_path.stem                           # e.g. "yolo26n"
+    infix = "_fp16" if half else ""
+    dst   = _MODELS_DIR / f"{stem}{infix}_{res}_ncnn_model"
 
     if dst.exists() and (dst / "model.ncnn.param").exists() and (dst / "model.ncnn.bin").exists():
         print(f"[skip] {dst.name} already exists — delete to re-export")
         return dst
 
-    print(f"\n--- {model_name} @ {res}px ---")
+    prec = "FP16" if half else "FP32"
+    print(f"\n--- {model_name} @ {res}px ({prec}) ---")
     model = YOLO(str(pt_path))
 
     # Ultralytics names the exported folder <stem>_ncnn_model/ in the working dir.
     # Using imgsz as int (not list) produces a square input, which is what we need.
-    exported_raw = Path(model.export(format="ncnn", imgsz=res, half=False))
+    exported_raw = Path(model.export(format="ncnn", imgsz=res, half=half))
 
     if dst.exists():
         shutil.rmtree(dst)
@@ -310,6 +317,11 @@ def main() -> None:
         help=f"List of resolutions to export (default: {_DEFAULT_RESOLUTIONS})",
     )
     parser.add_argument(
+        "--fp16",
+        action="store_true",
+        help="Additionally produce FP16 folders (<stem>_fp16_<res>_ncnn_model).",
+    )
+    parser.add_argument(
         "--int8",
         action="store_true",
         help="Additionally produce INT8-quantized folders via ncnn2table + ncnn2int8.",
@@ -370,6 +382,24 @@ def main() -> None:
     if failed:
         print(f"\nFAILED: {failed}", file=sys.stderr)
         sys.exit(1)
+
+    # FP16 export: independent pass producing half-precision folders alongside FP32
+    if args.fp16:
+        fp16_results: list[tuple[str, int, str]] = []
+        for model_name in models:
+            for res in resolutions:
+                try:
+                    out = export_ncnn(model_name, res, half=True)
+                    fp16_results.append((model_name, res, "ok" if out else "skipped"))
+                except Exception as exc:  # noqa: BLE001
+                    print(f"  FAIL {type(exc).__name__}: {exc}", file=sys.stderr)
+                    fp16_results.append((model_name, res, f"failed: {type(exc).__name__}: {exc}"))
+
+        print("\n--- FP16 export summary ---")
+        for model_name, res, status in fp16_results:
+            print(f"  {model_name} @ {res}px  →  {status}")
+        if [r for r in fp16_results if r[2].startswith("failed")]:
+            sys.exit(1)
 
     # INT8 post-quantization: only over the FP32 folders just produced/verified
     if args.int8:

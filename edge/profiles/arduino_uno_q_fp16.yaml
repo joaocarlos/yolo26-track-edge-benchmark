@@ -1,0 +1,30 @@
+# Arduino Uno Q — Qualcomm QRB2210, CPU FP16 (NCNN half precision)
+# Cortex-A53 quad-core @ 2.0 GHz, 2–4 GB LPDDR4
+#
+# FP16 arm of the controlled precision sweep on the second NCNN CPU device.
+# Pairs with arduino_uno_q (FP32) and arduino_uno_q_int8 (INT8). Note: the A53
+# may upcast FP16 to FP32 for compute (no native ARMv8.2 fp16), so FP16 here may
+# be numerically close to FP32 — the device run reports the actual effect.
+# Models: python edge/export/export_ncnn.py --fp16
+
+device_id: arduino_uno_q_fp16
+device_label: "Arduino Uno Q (QRB2210, FP16)"
+os: debian_arm
+
+torch_device: cpu
+backend: ncnn
+
+model_variants:
+  - yolo26n_fp16_640_ncnn_model
+  - yolo26n_fp16_576_ncnn_model
+  - yolo26s_fp16_640_ncnn_model
+  - yolo26s_fp16_576_ncnn_model
+  - yolo26m_fp16_640_ncnn_model
+  - yolo26m_fp16_576_ncnn_model
+
+model_format: ncnn_model
+
+resolutions: [640, 576]
+
+warmup_frames: 30
+result_tag: arduino_uno_q_fp16

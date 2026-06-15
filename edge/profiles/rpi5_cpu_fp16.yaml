@@ -1,0 +1,29 @@
+# Raspberry Pi 5 — CPU-only, FP16 (NCNN half precision)
+# Cortex-A76 quad-core @ 2.4 GHz, 8 GB LPDDR4X
+#
+# FP16 arm of the controlled precision sweep: identical board, runtime (NCNN), and
+# graph as rpi5_cpu.yaml — only model precision differs. Pairs with rpi5_cpu
+# (FP32) and rpi5_cpu_int8 (INT8) for the full FP32/FP16/INT8 sweep on one board.
+# Models: python edge/export/export_ncnn.py --fp16
+
+device_id: rpi5_cpu_fp16
+device_label: "Raspberry Pi 5 Model B (CPU, FP16)"
+os: raspbian
+
+torch_device: cpu
+backend: ncnn
+
+model_variants:
+  - yolo26n_fp16_640_ncnn_model
+  - yolo26n_fp16_576_ncnn_model
+  - yolo26s_fp16_640_ncnn_model
+  - yolo26s_fp16_576_ncnn_model
+  - yolo26m_fp16_640_ncnn_model
+  - yolo26m_fp16_576_ncnn_model
+
+model_format: ncnn_model
+
+resolutions: [640, 576]
+
+warmup_frames: 30
+result_tag: rpi5_cpu_fp16

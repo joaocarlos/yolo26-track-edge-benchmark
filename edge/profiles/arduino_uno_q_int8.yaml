@@ -1,0 +1,29 @@
+# Arduino Uno Q — Qualcomm QRB2210, CPU INT8 (NCNN PTQ)
+# Cortex-A53 quad-core @ 2.0 GHz, 2–4 GB LPDDR4
+#
+# INT8 arm of the controlled precision sweep on the second NCNN CPU device.
+# Pairs with arduino_uno_q (FP32) and arduino_uno_q_fp16 (FP16). Reuses the same
+# INT8 models as rpi5_cpu_int8 (generic ARM NCNN, KL-calibrated on MOT17
+# sequences held out from evaluation). Models: python edge/export/export_ncnn.py --int8
+
+device_id: arduino_uno_q_int8
+device_label: "Arduino Uno Q (QRB2210, INT8)"
+os: debian_arm
+
+torch_device: cpu
+backend: ncnn
+
+model_variants:
+  - yolo26n_int8_640_ncnn_model
+  - yolo26n_int8_576_ncnn_model
+  - yolo26s_int8_640_ncnn_model
+  - yolo26s_int8_576_ncnn_model
+  - yolo26m_int8_640_ncnn_model
+  - yolo26m_int8_576_ncnn_model
+
+model_format: ncnn_model
+
+resolutions: [640, 576]
+
+warmup_frames: 30
+result_tag: arduino_uno_q_int8
