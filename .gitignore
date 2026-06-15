@@ -50,5 +50,12 @@ archive/
 edge/export/logs/
 results/raw/desktop/*.csv
 
+# NCNN INT8 toolchain + regenerable quantization artifacts (ncnn release binaries,
+# calibration frame list, calibration tables). Deployment *_int8_*_ncnn_model/
+# folders are tracked like the FP32 ones.
+edge/export/tools/
+models/ncnn_int8_calib_list.txt
+models/calib_tables/
+
 # Ignore docs
 docs/

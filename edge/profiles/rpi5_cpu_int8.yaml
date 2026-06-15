@@ -1,0 +1,36 @@
+# Raspberry Pi 5 — CPU-only, INT8 quantized (NCNN PTQ)
+# Cortex-A76 quad-core @ 2.4 GHz, 8 GB LPDDR4X
+#
+# Controlled precision arm of the major-revision precision sweep: identical board,
+# runtime (NCNN), and graph as rpi5_cpu.yaml — only the model precision differs
+# (FP32 -> INT8). Pairs with rpi5_cpu (CPU FP32) and rpi5_hailo (NPU INT8) to
+# decouple precision from architecture. See docs/chat-reports/
+# FEATURE_precision_sweep_jetson_int8.md.
+#
+# INT8 folders produced by: python edge/export/export_ncnn.py --int8
+# Quantization: KL-divergence PTQ (ncnn2table + ncnn2int8) calibrated on MOT17
+# sequences held out from the evaluation set (MOT17-05/-10/-11/-13).
+
+device_id: rpi5_cpu_int8
+device_label: "Raspberry Pi 5 Model B (CPU, INT8)"
+os: raspbian
+
+torch_device: cpu
+backend: ncnn
+
+# "_int8_<res>_ncnn_model" layout keeps baked_imgsz() and the NCNN autobackend
+# loader working unchanged (verified against device_profile.py).
+model_variants:
+  - yolo26n_int8_640_ncnn_model
+  - yolo26n_int8_576_ncnn_model
+  - yolo26s_int8_640_ncnn_model
+  - yolo26s_int8_576_ncnn_model
+  - yolo26m_int8_640_ncnn_model
+  - yolo26m_int8_576_ncnn_model
+
+model_format: ncnn_model
+
+resolutions: [640, 576]
+
+warmup_frames: 30
+result_tag: rpi5_cpu_int8
