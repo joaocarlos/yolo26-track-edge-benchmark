@@ -1,0 +1,46 @@
+# NVIDIA Jetson Nano — TensorRT HQ engines (graph-surgery pipeline), FP32
+# Maxwell GPU (128 CUDA cores, sm_53), 4 GB LPDDR4 shared CPU/GPU memory
+# JetPack 4.6.x: CUDA 10.2, cuDNN 8.0, TensorRT 8.2, Python 3.8 (via apt)
+#
+# FP32 arm of the runtime-vs-precision isolation for the Jetson TRT HQ pipeline
+# (Reviewer 2, Comment 3): identical graph-surgery pipeline and hardware as
+# jetson_nano_trt.yaml (FP16) — only trtexec build precision differs (no --fp16
+# flag). Pairs with jetson_nano_trt.yaml to isolate the precision effect from
+# the CUDA-vs-TRT runtime-stack effect already isolated via jetson_nano.yaml.
+#
+# HQ engines are compiled from surgered ONNX graphs: the model is cut at the
+# 6 detection-head Conv outputs (cv2/cv3), removing DFL decode, dist2bbox, and
+# NMS from the engine. Post-processing (DFL softmax, anchor decode, NMS) runs
+# on CPU via trt_postprocess.py. Mod ops in the backbone/neck are decomposed
+# into TRT 8.2-compatible Sub/Mul/Floor/Div equivalents.
+#
+# Export: edge/export/export_tensorrt_hq.py (must run on the Nano itself);
+#         built directly via trtexec (no --fp16) — see fp32_batch_build.log.
+# Inference: benchmark.trt_infer.TrtInfer (tensorrt + pycuda)
+# Runner: benchmark.trt_runner.run_sequence_trt
+
+device_id: jetson_nano_trt_fp32
+device_label: "Jetson Nano TRT HQ FP32 (Seeed reComputer J10, JetPack 4.6.x)"
+os: jetpack
+
+torch_device: cpu
+backend: tensorrt_hq
+
+# HQ .engine files — resolution baked at compile time.
+# Each model×resolution pair is a separate engine file.
+model_variants:
+  # 640px variants
+  - yolo26n_fp32_hq.engine
+  - yolo26s_fp32_hq.engine
+  - yolo26m_fp32_hq.engine
+  # 576px variants
+  - yolo26n_fp32_576_hq.engine
+  - yolo26s_fp32_576_hq.engine
+  - yolo26m_fp32_576_hq.engine
+
+model_format: engine
+
+resolutions: [640, 576]
+
+warmup_frames: 30
+result_tag: jetson_nano_trt_fp32
